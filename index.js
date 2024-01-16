@@ -61,7 +61,8 @@ const initializeDiscord = (token) => {
 };
 
 const run = async () => {
-    const db = new sqlite3.Database("./database/battles.db");
+    const db = new sqlite3.Database("./database/battles_tmp.db");
+    const heroData = JSON.parse(await fs.readFile('./database/heros.json', 'utf8'));
 
     const discordToken = await fs.readFile('./discrod.token', 'utf8');
     const discordManager = await initializeDiscord(discordToken);
@@ -73,14 +74,79 @@ const run = async () => {
         const unitsValue = unitsParam != null ? unitsParam. value : '';
         const rankValue = rankParam != null ? rankParam. value : '';
 
-        const searchCode = unitsValue.split(":").sort().join();
-        const searchResult = searchData(searchCode, rankValue);
-        const battleMap = getBattleData(searchResult);
+        await context.deffer();
 
-        console.log(battleMap);
+        const searchCode = unitsValue.split(":").sort().join(':');
+        //const searchCode = 'c1117:c2089:c2109:c4004'; for testdata
+        const result = await do_ep7_rta_battle(db, heroData, searchCode, rankValue);
 
-        return 'Todo Command';
+        const text = [];
+        text.push('### 対象の編成');
+        result.seachParam.forEach(e => {
+            text.push('- ' + e.e_name !== undefined ? e.e_name : e.e_code);
+        });
+
+        text.push('### 勝利した編成');
+        result.calcResult.forEach(e => {
+
+            text.push('```');
+            text.push(e.win_count + ' win/' + (e.win_count+e.lose_count) + ' game (rate:' +e.win_rate+ '%)');
+            text.push('- ' + e.e1_name);
+            text.push('- ' + e.e2_name);
+            text.push('- ' + e.e3_name);
+            text.push('- ' + e.e4_name);
+            text.push('```');
+        });
+
+        const message = context.embdedMessage()
+            .setTitle(searchCode+'の検索結果')
+            .setDescription(text.join("\r\n"));
+        return { embeds: [message] };
     });
+    
+};
+
+const do_ep7_rta_battle = async(db, heroData, unitsValue, rankValue) => {
+    const searchResult = await searchData(unitsValue, '', db);
+    const battleMap = getBattleData(searchResult);
+
+    const winData = Object.keys(battleMap).map(k => battleMap[k]).filter(e => e.win > 0);
+    winData.sort(sortBattleData);
+
+    const size = winData.length > 10 ? 10 : winData.length;
+    const splitData = winData.slice(0, size);
+
+    const calcResult = splitData.map(e => {
+        const entry = e.key.split(':');
+
+        return {
+            e1_code : entry[0],
+            e1_name : heroData[entry[0]],
+            e2_code : entry[1],
+            e2_name : heroData[entry[1]],
+            e3_code : entry[2],
+            e3_name : heroData[entry[2]],
+            e4_code : entry[3],
+            e4_name : heroData[entry[3]],
+            win_count : e.win,
+            lose_count: e.lose,
+            win_rate: Math.floor(e.win / (e.win + e.lose) * 100)
+        };
+    });
+
+    const seachParam = unitsValue.split(':').map(e => {
+        return {e_code : e, e_name : heroData[e]}; 
+    });
+
+    return {seachParam:seachParam, calcResult:calcResult};
+};
+
+const sortBattleData = (a, b) => {
+    const diffWin = b.win - a.win;
+    const aRate = Math.floor(b.win / (b.win + b.lose) * 100);
+    const bRate = Math.floor(a.win / (a.win + a.lose) * 100);
+    const diffRate = bRate > aRate ? 1 : -1;
+    return diffWin !== 0 ? diffWin : diffRate;
 };
 
 const getBattleData = (searchResult) => {
@@ -103,22 +169,11 @@ const getBattleData = (searchResult) => {
 };
 
 const searchData = async(searchCode, rankValue, db) => {
-    const defaultRankValue = '"legend","emperor","champion","challenger","master","gold","silver"';
-    const rankValueQueryData = {
-        'legend'    : 'legend',
-        'emperor'   : '"legend","emperor"',
-        'champion'  : '"legend","emperor","champion"',
-        'challenger': '"legend","emperor","champion","challenger"',
-        'master'    : '"legend","emperor","champion","challenger","master"'
-    };
-    const rankValueQuery = rankValueQueryData[rankValue] === undefined ? defaultRankValue : rankValueQueryData[rankValue];
-
     return new Promise((resolve, reject) => {
         const sql = 'SELECT '
             + 'battle_id,season_code,grade_code,battle_result,my_dec_code,enemy_dec_code,first_pick,m_dec,e_dec,m_preban,e_preban '
             + 'FROM battles WHERE '
-            + 'enemy_dec_code = ? AND '+
-            + 'grade_code in ('+rankValueQuery+')';
+            + 'enemy_dec_code = ?';
 
         db.all(sql, [searchCode], (err, rows) => {
             if (err) {

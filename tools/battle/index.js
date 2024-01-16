@@ -78,10 +78,8 @@ const run = async() => {
 
     const db = new sqlite3.Database("./database/battles.db");
     db.serialize(() => {
-        db.run("drop table if exists battles");
         db.run("create table if not exists battles(battle_id text primary key,season_code,grade_code,battle_result,my_dec_code,enemy_dec_code,first_pick,m_dec,e_dec,m_preban,e_preban)");
     });
-
 
     for (let i = 0; i < targets.length; i++) {
         const user = targets[i];

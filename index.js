@@ -68,6 +68,26 @@ const run = async () => {
     const discordToken = await fs.readFile('./discrod.token', 'utf8');
     const discordManager = await initializeDiscord(discordToken);
 
+    discordManager.on('ep7-rta-code', async (context) => {
+        const result = [];
+
+        const nameParam = context.options.get("name");
+        const searchValue = nameParam != null ? nameParam. value : '';
+
+        const keys = Object.keys(heroData);
+        keys.forEach(k => {
+            const name = heroData[k];
+            if(name.indexOf(searchValue) !== -1) {
+                result.push(k + ' : ' + name);
+            }
+        });
+
+        return async (message) => {
+            const text = result.length === 0 ? 'not found' : result.join("\r\n");
+            await message(text);
+        }
+    });
+
     discordManager.on('ep7-rta-battle', async (context) => {
         const unitsParam = context.options.get("units");
         const rankParam = context.options.get("rank");

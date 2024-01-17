@@ -48,13 +48,40 @@ commands ["ep7-rta-battle"] = {
     ]
 };
 
+commands ["ep7-rta-code"] = {
+    name : "ep7-rta-code",
+    description : "A code corresponding to the entered hero name will be published.",
+    description_localizations : {
+        "en-US" : "A code corresponding to the entered hero name will be published.",
+        "zh-CN" : "A code corresponding to the entered hero name will be published.",
+        "ko" : "A code corresponding to the entered hero name will be published.",
+        "ja" : "入力された英雄名に対応するコードを返却します。(部分一致)"
+    },
+
+    options : [
+        {
+            type: 3,
+            name: "name",
+            description: "Name of the hero whose code you want to check (partial match)",
+            description_localizations : {
+                "en-US" : "Name of the hero whose code you want to check (partial match)",
+                "zh-CN" : "Name of the hero whose code you want to check (partial match)",
+                "ko" : "Name of the hero whose code you want to check (partial match)",
+                "ja" : "コードを調べたい英雄の名前(部分一致)"
+            },
+            required : true
+        }
+    ]
+};
+
 const run = async () => {
     const token = await fs.readFile('./discrod.token', 'utf8');
     const client = new Client({intents: 0});
     client.once("ready", async () => {
         console.log("ready");
         await client.application.commands.set([
-            commands["ep7-rta-battle"]
+            commands["ep7-rta-battle"],
+            commands ["ep7-rta-code"]
         ]);
 
         console.log("complete");

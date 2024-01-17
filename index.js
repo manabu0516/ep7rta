@@ -76,6 +76,8 @@ const run = async () => {
     //const searchCode = 'c2019:c2073:c2074:c2089';
     //const result = await do_ep7_rta_battle(db, heroData, searchCode, '');
 
+    //select my_dec_code,enemy_dec_code, count(*) as cnt from battles group by my_dec_code,enemy_dec_code order by cnt desc limit 10;
+
     const discordToken = await fs.readFile('./discrod.token', 'utf8');
     const discordManager = await initializeDiscord(discordToken);
 
@@ -179,10 +181,17 @@ const do_ep7_rta_battle = async(db, heroData, unitsValue, rankValue) => {
 
 const sortBattleData = (a, b) => {
     const diffWin = b.win - a.win;
+
     const aRate = Math.floor(a.win / (a.win + a.lose) * 100);
     const bRate = Math.floor(b.win / (b.win + b.lose) * 100);
+
+    const aGame = a.win + a.lose;
+    const bGame = b.win + b.lose;
+
     const diffRate = bRate - aRate;
-    return diffWin !== 0 ? diffWin : diffRate;
+    const gameDiff = bGame - aGame; 
+
+    return diffWin !== 0 ? diffWin : (diffRate !== 0 ? diffRate : gameDiff);
 };
 
 const getBattleData = (searchResult) => {

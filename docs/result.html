@@ -137,19 +137,23 @@
                     return '<img style="width: 40%; margin: 2%;" src="https://static.smilegatemegaport.com/event/live/epic7/guide/images/hero/'+e+'_s.png" class="img-thumbnail" alt=""/>';
                 });
 
+                const m_result_html = data.battle_result === 'win' ? '<span class="badge bg-success">win</span>' : '<span class="badge bg-danger">lose</span>';
+                const e_result_html = data.battle_result === 'win' ? '<span class="badge bg-success">win</span>' : '<span class="badge bg-danger">lose</span>';
+
+
                 const html = ''
                     +'<div class="col-lg-4" style="margin-top: 10px;">'
                     +'<div style="margin-bottom: -5px;"><span class="badge bg-primary" style="width:100%;">結果'+(i+1)+label+'</span></div>'
                     +'<div style="display: flex;border: var(--bs-border-width) solid var(--bs-border-color);">'
 
                     +'<div style="width:50%;padding: 10px;">' 
-                    +'<div style="padding-bottom: 15px;text-align: left;">' +(firstPick === true ? '<span class="badge bg-primary">first</span>&nbsp;' : '')+ '<span class="badge bg-success">win</span></div>'
+                    +'<div style="padding-bottom: 15px;text-align: left;">' +(firstPick === true ? '<span class="badge bg-primary">first</span>&nbsp;' : '')+ m_result_html + '</div>'
                     + m_dec_html.join('')
                     + '<div><span class="badge bg-primary" style="width:100%;">preban</span>' + preban_m_html.join('') + '</div>'
                     +'</div>'
                     
                     +'<div style="width:50%;padding: 10px;">'
-                    +'<div style="padding-bottom: 15px;text-align: right;">' + (firstPick === false ? '<span class="badge bg-primary">first</span>&nbsp;' : '')+  '<span class="badge bg-danger">lose</span></div>'
+                    +'<div style="padding-bottom: 15px;text-align: right;">' + (firstPick === false ? '<span class="badge bg-primary">first</span>&nbsp;' : '')+ e_result_html +'</div>'
                     + e_dec_html.join('')
                     + '<div style="text-align: right;"><span class="badge bg-primary" style="width:100%;">preban</span> ' + preban_e_html.join('') + '</div>'
                     +'</div>'

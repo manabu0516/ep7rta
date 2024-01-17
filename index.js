@@ -1,7 +1,7 @@
 // https://discord.com/api/oauth2/authorize?client_id=1035058107899981854&permissions=3072&scope=bot
 
 const fs = require('fs').promises;
-const sqlite3 = require("sqlite3");
+const mysql = require("mysql2/promise");
 
 const initializeDiscord = (token) => {
     const Discord = require("discord.js");
@@ -43,7 +43,7 @@ const initializeDiscord = (token) => {
                 return;
             }
             const response = await commandInvoke(context);
-            const message = interaction.replied || interaction.deferred ? async (msg, option) => await interaction.followUp(msg, option) : (msg, option) => interaction.reply(meg, option);
+            const message = interaction.replied || interaction.deferred ? async (msg, option) => await interaction.followUp(msg, option) : (msg, option) => interaction.reply(msg, option);
             await response(message);
         } catch(e) {
             return interaction.replied || interaction.deferred ? await interaction.followUp("error :" + e) : interaction.reply("error : "+e);
@@ -62,8 +62,19 @@ const initializeDiscord = (token) => {
 };
 
 const run = async () => {
-    const db = new sqlite3.Database("./database/battles_tmp.db");
+    const mysqlConfig = (await fs.readFile('./mysql.configure', 'utf8')).split("\r\n");
+    const db = await mysql.createConnection({
+        user: mysqlConfig[0],
+        host: mysqlConfig[1],
+        password: mysqlConfig[2],
+        database: mysqlConfig[3],
+        port: parseInt(mysqlConfig[4]),
+    });
+
     const heroData = JSON.parse(await fs.readFile('./database/heros.json', 'utf8'));
+
+    //const searchCode = 'c2019:c2073:c2074:c2089';
+    //const result = await do_ep7_rta_battle(db, heroData, searchCode, '');
 
     const discordToken = await fs.readFile('./discrod.token', 'utf8');
     const discordManager = await initializeDiscord(discordToken);
@@ -78,7 +89,7 @@ const run = async () => {
         keys.forEach(k => {
             const name = heroData[k];
             if(name.indexOf(searchValue) !== -1) {
-                result.push(name + ' : ' + k);
+                result.push('* ' + k + ' : ' + name);
             }
         });
 
@@ -98,7 +109,6 @@ const run = async () => {
         await context.deffer();
 
         const searchCode = unitsValue.split(":").sort().join(':');
-        //const searchCode = 'c1117:c2089:c2109:c4004'; for testdata
         const result = await do_ep7_rta_battle(db, heroData, searchCode, rankValue);
         
         return async (message) => {
@@ -117,17 +127,28 @@ const run = async () => {
             }
         };
     });
-    
 };
 
 const do_ep7_rta_battle = async(db, heroData, unitsValue, rankValue) => {
-    const searchResult = await searchData(unitsValue, '', db);
+    const RANK_TARGETS_DEFAULT= ['legend','emperor','champion','challenger','master','gold','silver','bronze'];
+    const RANK_TARGETS_MAP = {
+        'legend' : ['legend'],
+        'emperor': ['legend','emperor'],
+        'champion': ['legend','emperor','champion'],
+        'challenger' : ['legend','emperor','champion','challenger'],
+        'master' : ['legend','emperor','champion','challenger','master']
+    };
+    const rankFilter = RANK_TARGETS_MAP[rankValue] ? RANK_TARGETS_MAP[rankValue] : RANK_TARGETS_DEFAULT;
+    const searchResult = (await searchData(unitsValue, '', db)).filter(e => {
+        return rankFilter.indexOf(e.grade_code) !== -1;
+    });
+
     const battleMap = getBattleData(searchResult);
 
     const winData = Object.keys(battleMap).map(k => battleMap[k]).filter(e => e.win > 0);
     winData.sort(sortBattleData);
 
-    const size = winData.length > 3 ? 3 : winData.length;
+    const size = winData.length > 5 ? 5 : winData.length;
     const splitData = winData.slice(0, size);
 
     const calcResult = splitData.map(e => {
@@ -158,9 +179,9 @@ const do_ep7_rta_battle = async(db, heroData, unitsValue, rankValue) => {
 
 const sortBattleData = (a, b) => {
     const diffWin = b.win - a.win;
-    const aRate = Math.floor(b.win / (b.win + b.lose) * 100);
-    const bRate = Math.floor(a.win / (a.win + a.lose) * 100);
-    const diffRate = bRate > aRate ? 1 : -1;
+    const aRate = Math.floor(a.win / (a.win + a.lose) * 100);
+    const bRate = Math.floor(b.win / (b.win + b.lose) * 100);
+    const diffRate = bRate - aRate;
     return diffWin !== 0 ? diffWin : diffRate;
 };
 
@@ -185,20 +206,13 @@ const getBattleData = (searchResult) => {
 };
 
 const searchData = async(searchCode, rankValue, db) => {
-    return new Promise((resolve, reject) => {
-        const sql = 'SELECT '
+    const query = 'SELECT '
             + 'battle_id,season_code,grade_code,battle_result,my_dec_code,enemy_dec_code,first_pick,m_dec,e_dec,m_preban,e_preban '
             + 'FROM battles WHERE '
             + 'enemy_dec_code = ?';
+    const [rows, fields] = await db.query(query, searchCode);
 
-        db.all(sql, [searchCode], (err, rows) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(rows);
-            }
-        });
-    });
+    return rows;
 };
 
 run();

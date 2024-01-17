@@ -1,8 +1,7 @@
 
 
 const fetch = require('node-fetch');
-const sqlite3 = require("sqlite3");
-const pathUtil = require('path');
+const mysql = require("mysql2/promise");
 const crypto = require('crypto');
 const fs = require('fs').promises;
 
@@ -56,55 +55,65 @@ const dec_data = (dec) => {
     return dec.map(e => e.hero_code).join(':');
 };
 
+const emptyValue = (v) => {
+    return v === undefined || v === null ? '' : v.trim();
+};
+
 const battleToQuery = (battle) => {
-    return ""
-        + "("
-        + "'" +battle.battle_id+ "'" + ","
-        + "'" +battle.season_code+ "'" + ","
-        + "'" +battle.grade_code+ "'" + ","
-        + "'" +battle.battle_result+ "'" + ","
-        + "'" +battle.my_dec_code+ "'" + ","
-        + "'" +battle.enemy_dec_code+ "'" + ","
-        + "'" +battle.first_pick+ "'" + ","
-        + "'" +battle.m_dec+ "'" + ","
-        + "'" +battle.e_dec+ "'" + ","
-        + "'" +battle.m_preban+ "'" + ","
-        + "'" +battle.e_preban+ "'"
-        + ")"; 
+    const m_entries = battle.m_dec.split(':');
+    const e_entries = battle.e_dec.split(':');
+
+    return [
+        battle.battle_id,
+        battle.season_code,
+        battle.grade_code,
+        battle.battle_result,
+        battle.my_dec_code,
+        battle.enemy_dec_code,
+        battle.first_pick ? 1: 0,
+        battle.m_dec,
+        battle.e_dec,
+        battle.m_preban,
+        battle.e_preban,
+        emptyValue(m_entries[0]),
+        emptyValue(m_entries[1]),
+        emptyValue(m_entries[2]),
+        emptyValue(m_entries[3]),
+        emptyValue(m_entries[4]),
+        emptyValue(e_entries[0]),
+        emptyValue(e_entries[1]),
+        emptyValue(e_entries[2]),
+        emptyValue(e_entries[3]),
+        emptyValue(e_entries[4]),
+    ];
 };
 
 const run = async() => {
     const targets = JSON.parse(await fs.readFile('./database/users.json', 'utf8'));
+    const mysqlConfig = (await fs.readFile('./mysql.configure', 'utf8')).split("\r\n");
 
-    const db = new sqlite3.Database("./database/battles.db");
-    db.serialize(() => {
-        db.run("create table if not exists battles(battle_id text primary key,season_code,grade_code,battle_result,my_dec_code,enemy_dec_code,first_pick,m_dec,e_dec,m_preban,e_preban)");
+    const db = await mysql.createConnection({
+        user: mysqlConfig[0],
+        host: mysqlConfig[1],
+        password: mysqlConfig[2],
+        database: mysqlConfig[3],
+        port: parseInt(mysqlConfig[4]),
     });
 
-    let startflg = false;
     for (let i = 0; i < targets.length; i++) {
         const user = targets[i];
-
-        if(user.nick_no === '67703296') {
-            startflg = true;
-        }
-        if(startflg === false) {
-            continue;
-        }
 
         console.log(user.world_code + ':' + user.nick_no + '('+i+'/'+targets.length+')' );
         
         const collection = await searchData(user.world_code, user.nick_no);
-        db.serialize(() => {
-            for (let l = 0; l < collection.length; l++) {
-                const battle = collection[l];
-                const query = battleToQuery(battle);
-                db.run("insert into battles (battle_id,season_code,grade_code,battle_result,my_dec_code,enemy_dec_code,first_pick,m_dec,e_dec,m_preban,e_preban) values " + query + 'on conflict (battle_id) do nothing;');
-            }
-        });
+        for (let l = 0; l < collection.length; l++) {
+            const battle = collection[l];
+            const values = battleToQuery(battle);
+            await db.query('insert ignore into battles'
+                + '(battle_id,season_code,grade_code,battle_result,my_dec_code,enemy_dec_code,first_pick,m_dec,e_dec,m_preban,e_preban,m_pic1,m_pic2,m_pic3,m_pic4,m_pic5,e_pic1,e_pic2,e_pic3,e_pic4,e_pic5)'
+                + ' values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', values,);
+        }
     }
-
-    db.close();
 };
 
 run();

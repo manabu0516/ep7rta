@@ -84,13 +84,15 @@ const run = async () => {
         return async (message) => {
             await message('**[対象編成]**' + '\r\n' + result.seachParam.map(e => e.e_name).join(' : '));
 
+            const messages = [];
             for (let i = 0; i < result.calcResult.length; i++) {
                 const element = result.calcResult[i];
 
                 const text = ''
-                    + '[' + element.win_count + '/' + (element.win_count + element. lose_count) + 'win (rate:' + element.win_rate + '%)]' + '\r\n'
+                    + '**[勝利編成]**' + '\r\n'
                     + element.e1_name + ' : ' + element.e2_name + ' : ' + element.e3_name + ' : ' + element.e4_name + '\r\n'
-                    + '詳細は [こちら](https://manabu0516.github.io/ep7rta/result.html?json=' + encodeURIComponent(JSON.stringify(element.result))+')';
+                    + '[' + element.win_count + '/' + (element.win_count + element. lose_count) + 'win : rate:' + element.win_rate + '%]' + ' '
+                    + '[詳細](https://manabu0516.github.io/ep7rta/result.html?json=' + encodeURIComponent(JSON.stringify(element.result))+')';
                 await message(text);
             }
         };
@@ -105,7 +107,7 @@ const do_ep7_rta_battle = async(db, heroData, unitsValue, rankValue) => {
     const winData = Object.keys(battleMap).map(k => battleMap[k]).filter(e => e.win > 0);
     winData.sort(sortBattleData);
 
-    const size = winData.length > 10 ? 10 : winData.length;
+    const size = winData.length > 3 ? 3 : winData.length;
     const splitData = winData.slice(0, size);
 
     const calcResult = splitData.map(e => {

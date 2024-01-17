@@ -25,10 +25,22 @@
         </div>
     </div>
 
-    <div class="container" style="margin-top: 50px;">
+    <div class="container" style="margin-top: 70px;">
         <div class="row">
-            <div class="col-lg-12">
+            <div class="col-lg-12" style="border: var(--bs-border-width) solid var(--bs-border-color); padding: 10px;">
+                <span class="badge text-bg-primary" style="margin-bottom: 5px;">対象構成</span>
+
+                <div id="enemy-dec-box" style="display: flex;">
+                </div>
             </div>
+        </div>
+
+        <div class="row" style="margin-top: 10px;">
+            <span class="badge text-bg-primary" style="margin-bottom: 5px;">バトル結果</span>
+        </div>
+
+        <div class="row" id="battle-result-box">
+            
         </div>
     </div>
 
@@ -42,9 +54,81 @@
             window.heroData = data;
         };
 
+        const SEASON_MAP = {
+            'pvp_rta_ss12' : 'シーズン：洞察',
+            'pvp_rta_ss11' : 'シーズン：勇姿',
+        };
+
+        const GRADE_MAP = {
+            'legend' : 'レジェンド',
+            'emperor': 'エンペラー',
+            'champion': 'チャンピオン',
+            'challenger' : 'チャレンジャー',
+            'master' : 'マスター',
+            'gold' : 'ゴールド',
+            'silver' : 'シルバー',
+            'bronze' : 'ブロンズ',
+        };
+
         $(() => {
             const json = JSON.parse(decodeURIComponent(location.search.substring(6)));
             console.log(json);
+
+            const html1 = json[0].enemy_dec_code.split(':').map(e => {
+                return ''
+                    + '<div style="width: 100%;text-align: center;">'
+                    + '<img src="https://static.smilegatemegaport.com/event/live/epic7/guide/images/hero/'+e+'_s.png" class="img-thumbnail" alt=""/>'
+                    + '</div>';
+
+            }).join('');
+            $("#enemy-dec-box").html(html1);
+
+            const html2 = [];
+            for (let i = 0; i < json.length; i++) {
+                const data = json[i];
+                const firstPick = data.first_pick === 'true';
+
+                const m_dec_html = data.m_dec.split(':').map((e,i) => {
+                    const ban = data.my_dec_code.indexOf(e) === -1;
+                    return ''
+                        + '<div style="width: 100%;text-align: left;margin-bottom: 15px;" class="position-relative">'
+                        + '<img style="'+(ban ? 'background-color: gray;' : '')+'" src="https://static.smilegatemegaport.com/event/live/epic7/guide/images/hero/'+e+'_s.png" class="img-thumbnail" alt=""/>'
+                        + (ban ? '<span style="top: 5px ;left: 5px " class="position-absolute translate-middle badge rounded-pill bg-warning">BAN<span class="visually-hidden">unread messages</span></span>' : '')
+                        + '</div>';
+                });
+                const e_dec_html = data.e_dec.split(':').map(e => {
+                    const ban = data.enemy_dec_code.indexOf(e) === -1;
+                    return ''
+                        + '<div style="width: 100%;text-align: right;margin-bottom: 15px;" class="position-relative">'
+                        + '<img style="'+(ban ? 'background-color: gray;' : '')+'" src="https://static.smilegatemegaport.com/event/live/epic7/guide/images/hero/'+e+'_s.png" class="img-thumbnail" alt=""/>'
+                        + (ban ? '<span style="top: 5px ;right: -30px;" class="position-absolute translate-middle badge rounded-pill bg-warning">BAN<span class="visually-hidden">unread messages</span></span>' : '')
+                        + '</div>';
+                });
+
+                const label = ' [' + SEASON_MAP[data.season_code] +']' + ' ' + '[' + GRADE_MAP[data.grade_code] + ']';
+
+                const html = ''
+                    +'<div class="col-lg-4" style="margin-top: 10px;">'
+                    +'<div style="margin-bottom: -5px;"><span class="badge bg-primary" style="width:100%;">結果'+(i+1)+label+'</span></div>'
+                    +'<div style="display: flex;border: var(--bs-border-width) solid var(--bs-border-color);">'
+
+                    +'<div style="width:50%;padding: 10px;">' 
+                    +'<div style="padding-bottom: 15px;text-align: left;">' +(firstPick === true ? '<span class="badge bg-primary">first</span>&nbsp;' : '')+ '<span class="badge bg-success">win</span></div>'
+                    + m_dec_html.join('')
+                    +'</div>'
+                    
+                    +'<div style="width:50%;padding: 10px;">'
+                    +'<div style="padding-bottom: 15px;text-align: right;">' + (firstPick === false ? '<span class="badge bg-primary">first</span>&nbsp;' : '')+  '<span class="badge bg-danger">lose</span></div>'
+                    + e_dec_html.join('')
+                    +'</div>'
+                    
+                    +'</div>'
+                    +'</div>';
+                html2.push(html);
+            }
+
+            $("#battle-result-box").html(html2.join(''));
+            
         });
     </script>
     <script src="./heros.js"></script>

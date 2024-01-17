@@ -78,7 +78,7 @@ const run = async () => {
         keys.forEach(k => {
             const name = heroData[k];
             if(name.indexOf(searchValue) !== -1) {
-                result.push(k + ' : ' + name);
+                result.push(name + ' : ' + k);
             }
         });
 

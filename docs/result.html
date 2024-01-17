@@ -107,6 +107,13 @@
 
                 const label = ' [' + SEASON_MAP[data.season_code] +']' + ' ' + '[' + GRADE_MAP[data.grade_code] + ']';
 
+                const preban_m_html = data.m_preban.split(':').filter(e => e !== '').map(e => {
+                    return '<img style="width: 40%; margin: 2%;" src="https://static.smilegatemegaport.com/event/live/epic7/guide/images/hero/'+e+'_s.png" class="img-thumbnail" alt=""/>';
+                });
+                const preban_e_html = data.e_preban.split(':').filter(e => e !== '').map(e => {
+                    return '<img style="width: 40%; margin: 2%;" src="https://static.smilegatemegaport.com/event/live/epic7/guide/images/hero/'+e+'_s.png" class="img-thumbnail" alt=""/>';
+                });
+
                 const html = ''
                     +'<div class="col-lg-4" style="margin-top: 10px;">'
                     +'<div style="margin-bottom: -5px;"><span class="badge bg-primary" style="width:100%;">結果'+(i+1)+label+'</span></div>'
@@ -115,14 +122,17 @@
                     +'<div style="width:50%;padding: 10px;">' 
                     +'<div style="padding-bottom: 15px;text-align: left;">' +(firstPick === true ? '<span class="badge bg-primary">first</span>&nbsp;' : '')+ '<span class="badge bg-success">win</span></div>'
                     + m_dec_html.join('')
+                    + '<div><span class="badge bg-primary" style="width:100%;">preban</span>' + preban_m_html.join('') + '</div>'
                     +'</div>'
                     
                     +'<div style="width:50%;padding: 10px;">'
                     +'<div style="padding-bottom: 15px;text-align: right;">' + (firstPick === false ? '<span class="badge bg-primary">first</span>&nbsp;' : '')+  '<span class="badge bg-danger">lose</span></div>'
                     + e_dec_html.join('')
+                    + '<div style="text-align: right;"><span class="badge bg-primary" style="width:100%;">preban</span>' + preban_e_html.join('') + '</div>'
                     +'</div>'
                     
                     +'</div>'
+
                     +'</div>';
                 html2.push(html);
             }

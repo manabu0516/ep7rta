@@ -85,7 +85,7 @@ const run = async() => {
     for (let i = 0; i < targets.length; i++) {
         const user = targets[i];
 
-        if(user.nick_no === '57064765') {
+        if(user.nick_no === '67703296') {
             startflg = true;
         }
         if(startflg === false) {

@@ -138,8 +138,7 @@
                 });
 
                 const m_result_html = data.battle_result === 'win' ? '<span class="badge bg-success">win</span>' : '<span class="badge bg-danger">lose</span>';
-                const e_result_html = data.battle_result === 'win' ? '<span class="badge bg-success">win</span>' : '<span class="badge bg-danger">lose</span>';
-
+                const e_result_html = data.battle_result !== 'win' ? '<span class="badge bg-success">win</span>' : '<span class="badge bg-danger">lose</span>';
 
                 const html = ''
                     +'<div class="col-lg-4" style="margin-top: 10px;">'

@@ -57,6 +57,16 @@
         const SEASON_MAP = {
             'pvp_rta_ss12' : 'シーズン：洞察',
             'pvp_rta_ss11' : 'シーズン：勇姿',
+            'pvp_rta_ss10' : 'シーズン：不屈',
+            'pvp_rta_ss9'  : 'シーズン：制覇',
+            'pvp_rta_ss8'  : 'シーズン : 征服',
+            'pvp_rta_ss7'  : 'シーズン : 決断',
+            'pvp_rta_ss6'  : 'シーズン : 信念',
+            'pvp_rta_ss5'  : 'シーズン : 野望',
+            'pvp_rta_ss4'  : 'シーズン : 飛躍',
+            'pvp_rta_ss3'  : 'シーズン : 情熱',
+            'pvp_rta_ss2'  : 'シーズン : 闘争',
+            'pvp_rta_ss1'  : 'シーズン : 対決'
         };
 
         const GRADE_MAP = {
@@ -128,7 +138,7 @@
                     +'<div style="width:50%;padding: 10px;">'
                     +'<div style="padding-bottom: 15px;text-align: right;">' + (firstPick === false ? '<span class="badge bg-primary">first</span>&nbsp;' : '')+  '<span class="badge bg-danger">lose</span></div>'
                     + e_dec_html.join('')
-                    + '<div style="text-align: right;"><span class="badge bg-primary" style="width:100%;">preban</span>' + preban_e_html.join('') + '</div>'
+                    + '<div style="text-align: right;"><span class="badge bg-primary" style="width:100%;">preban</span> ' + preban_e_html.join('') + '</div>'
                     +'</div>'
                     
                     +'</div>'
@@ -138,7 +148,6 @@
             }
 
             $("#battle-result-box").html(html2.join(''));
-            
         });
     </script>
     <script src="./heros.js"></script>

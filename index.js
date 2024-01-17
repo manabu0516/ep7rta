@@ -42,8 +42,9 @@ const initializeDiscord = (token) => {
                 interaction.reply("not found command");
                 return;
             }
-            const result = await commandInvoke(context);
-            return interaction.replied || interaction.deferred ? await interaction.followUp(result) : interaction.reply(result);
+            const response = await commandInvoke(context);
+            const message = interaction.replied || interaction.deferred ? async (msg, option) => await interaction.followUp(msg, option) : (msg, option) => interaction.reply(meg, option);
+            await response(message);
         } catch(e) {
             return interaction.replied || interaction.deferred ? await interaction.followUp("error :" + e) : interaction.reply("error : "+e);
         }
@@ -79,29 +80,20 @@ const run = async () => {
         const searchCode = unitsValue.split(":").sort().join(':');
         //const searchCode = 'c1117:c2089:c2109:c4004'; for testdata
         const result = await do_ep7_rta_battle(db, heroData, searchCode, rankValue);
+        
+        return async (message) => {
+            await message('**[対象編成]**' + '\r\n' + result.seachParam.map(e => e.e_name).join(' : '));
 
-        const text = [];
-        text.push('### 対象の編成');
-        result.seachParam.forEach(e => {
-            text.push('- ' + e.e_name !== undefined ? e.e_name : e.e_code);
-        });
+            for (let i = 0; i < result.calcResult.length; i++) {
+                const element = result.calcResult[i];
 
-        text.push('### 勝利した編成');
-        result.calcResult.forEach(e => {
-
-            text.push('```');
-            text.push(e.win_count + ' win/' + (e.win_count+e.lose_count) + ' game (rate:' +e.win_rate+ '%)');
-            text.push('- ' + e.e1_name);
-            text.push('- ' + e.e2_name);
-            text.push('- ' + e.e3_name);
-            text.push('- ' + e.e4_name);
-            text.push('```');
-        });
-
-        const message = context.embdedMessage()
-            .setTitle(searchCode+'の検索結果')
-            .setDescription(text.join("\r\n"));
-        return { embeds: [message] };
+                const text = ''
+                    + '[' + element.win_count + '/' + (element.win_count + element. lose_count) + 'win (rate:' + element.win_rate + '%)]' + '\r\n'
+                    + element.e1_name + ' : ' + element.e2_name + ' : ' + element.e3_name + ' : ' + element.e4_name + '\r\n'
+                    + '詳細は [こちら](https://manabu0516.github.io/ep7rta/result.html?json=' + encodeURIComponent(JSON.stringify(element.result))+')';
+                await message(text);
+            }
+        };
     });
     
 };
@@ -130,7 +122,8 @@ const do_ep7_rta_battle = async(db, heroData, unitsValue, rankValue) => {
             e4_name : heroData[entry[3]],
             win_count : e.win,
             lose_count: e.lose,
-            win_rate: Math.floor(e.win / (e.win + e.lose) * 100)
+            win_rate: Math.floor(e.win / (e.win + e.lose) * 100),
+            result  : e.result,
         };
     });
 
@@ -156,7 +149,7 @@ const getBattleData = (searchResult) => {
         const key = r.my_dec_code;
         
         if(battleMap[key] == undefined) {
-            battleMap[key] = {key : key, win : 0, lose : 0};
+            battleMap[key] = {key : key, win : 0, lose : 0, result : []};
         }
 
         if(r.battle_result === 'win') {
@@ -164,6 +157,7 @@ const getBattleData = (searchResult) => {
         } else {
             battleMap[key].lose += 1;
         }
+        battleMap[key].result.push(r);
     }
     return battleMap;
 };

@@ -81,8 +81,17 @@ const run = async() => {
         db.run("create table if not exists battles(battle_id text primary key,season_code,grade_code,battle_result,my_dec_code,enemy_dec_code,first_pick,m_dec,e_dec,m_preban,e_preban)");
     });
 
+    let startflg = false;
     for (let i = 0; i < targets.length; i++) {
         const user = targets[i];
+
+        if(user.nick_no === '72109003') {
+            startflg = true;
+        }
+        if(startflg === false) {
+            continue;
+        }
+
         console.log(user.world_code + ':' + user.nick_no + '('+i+'/'+targets.length+')' );
         
         const collection = await searchData(user.world_code, user.nick_no);

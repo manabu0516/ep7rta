@@ -44,7 +44,88 @@ commands ["ep7-rta-battle"] = {
                 { name: "challenger", value: "challenger" },
                 { name: "master", value: "master" },
             ]
-        }
+        },
+        {
+            type: 3,
+            name: "count",
+            description: "Specify the display block (1-10)",
+            description_localizations : {
+                "en-US" : "Specify the display block (1-10)",
+                "zh-CN" : "Specify the display block (1-10)",
+                "ko" : "Specify the display block (1-10)",
+                "ja" : "表示件数を指定します(1-10まで)"
+            },
+            required : false
+        },
+    ]
+};
+
+commands ["ep7-rta-pic"] = {
+    name : "ep7-rta-pic",
+    description : "Search for popular heroes in the following selections.",
+    description_localizations : {
+        "en-US" : "Search for popular heroes in the following selections.",
+        "zh-CN" : "Search for popular heroes in the following selections.",
+        "ko" : "Search for popular heroes in the following selections.",
+        "ja" : "次の選択でよく選ばれている英雄を検索します。"
+    },
+
+    options : [
+        {
+            type: 3,
+            name: "m_units",
+            description: "Specify the selection state of your hero.",
+            description_localizations : {
+                "en-US" : "Specify the selection state of your hero.",
+                "zh-CN" : "Specify the selection state of your hero.",
+                "ko" : "Specify the selection state of your hero.",
+                "ja" : "自身の英雄の選択状態を指定します。(英雄ごとにコード値を4体分まで[:]区切りで指定します。)"
+            },
+            required : true
+        },
+        {
+            type: 3,
+            name: "e_units",
+            description: "Specifies the selection state of the opponent's hero.",
+            description_localizations : {
+                "en-US" : "Specifies the selection state of the opponent's hero.",
+                "zh-CN" : "Specifies the selection state of the opponent's hero.",
+                "ko" : "Specifies the selection state of the opponent's hero.",
+                "ja" : "相手の英雄の選択状態を指定します。(英雄ごとにコード値を5体分まで[:]区切りで指定します。)"
+            },
+            required : true
+        },
+        {
+            type: 3,
+            name: "rank",
+            description: "Indicates the rank range of the target battle.",
+            description_localizations : {
+                "en-US" : "Indicates the rank range of the target battle.",
+                "zh-CN" : "Indicates the rank range of the target battle.",
+                "ko" : "Indicates the rank range of the target battle.",
+                "ja" : "対象とするバトルのランク帯をしていします。"
+            },
+            required : false,
+            choices: [
+                { name: "legend", value: "legend" },
+                { name: "emperor", value: "emperor" },
+                { name: "champion", value: "champion" },
+                { name: "challenger", value: "challenger" },
+                { name: "master", value: "master" },
+            ]
+        },
+        {
+            type: 3,
+            name: "count",
+            description: "Specify the display block (1-10)",
+            description_localizations : {
+                "en-US" : "Specify the display block (1-10)",
+                "zh-CN" : "Specify the display block (1-10)",
+                "ko" : "Specify the display block (1-10)",
+                "ja" : "表示件数を指定します(1-10まで)"
+            },
+            required : false
+        },
     ]
 };
 
@@ -81,7 +162,8 @@ const run = async () => {
         console.log("ready");
         await client.application.commands.set([
             commands["ep7-rta-battle"],
-            commands ["ep7-rta-code"]
+            commands ["ep7-rta-pic"],
+            commands ["ep7-rta-code"],
         ]);
 
         console.log("complete");

@@ -73,11 +73,6 @@ const run = async () => {
 
     const heroData = JSON.parse(await fs.readFile('./database/heros.json', 'utf8'));
 
-    //const searchCode = 'c2019:c2073:c2074:c2089';
-    //const result = await do_ep7_rta_battle(db, heroData, searchCode, '');
-
-    //select my_dec_code,enemy_dec_code, count(*) as cnt from battles group by my_dec_code,enemy_dec_code order by cnt desc limit 10;
-
     const discordToken = await fs.readFile('./discrod.token', 'utf8');
     const discordManager = await initializeDiscord(discordToken);
 
@@ -104,19 +99,19 @@ const run = async () => {
     discordManager.on('ep7-rta-battle', async (context) => {
         const unitsParam = context.options.get("units");
         const rankParam = context.options.get("rank");
+        const countParam = context.options.get("count");
 
         const unitsValue = unitsParam != null ? unitsParam. value : '';
-        const rankValue = rankParam != null ? rankParam. value : '';
+        const rankValue = rankParam != null ? rankParam.value : '';
+        const countValue = intValue(countParam != null ? rankParam.countParam : '10', 5, 10);
 
         await context.deffer();
 
         const searchCode = unitsValue.split(":").sort().join(':');
-        const result = await do_ep7_rta_battle(db, heroData, searchCode, rankValue);
+        const result = await do_ep7_rta_battle(db, heroData, searchCode, rankValue, countValue);
         
         return async (message) => {
             await message('**[対象編成]**' + '\r\n' + result.seachParam.map(e => e.e_name).join(' : '));
-
-            const messages = [];
             for (let i = 0; i < result.calcResult.length; i++) {
                 const element = result.calcResult[i];
 
@@ -131,7 +126,16 @@ const run = async () => {
     });
 };
 
-const do_ep7_rta_battle = async(db, heroData, unitsValue, rankValue) => {
+const intValue = (v, def, max) => {
+    try {
+        const ret = parseInt(v);
+        return ret > 0 && ret <=max ? ret : def; 
+    } catch(e) {
+        return def;
+    }
+};
+
+const do_ep7_rta_battle = async(db, heroData, unitsValue, rankValue, countValue) => {
     const RANK_TARGETS_DEFAULT= ['legend','emperor','champion','challenger','master','gold','silver','bronze'];
     const RANK_TARGETS_MAP = {
         'legend' : ['legend'],
@@ -150,7 +154,7 @@ const do_ep7_rta_battle = async(db, heroData, unitsValue, rankValue) => {
     const winData = Object.keys(battleMap).map(k => battleMap[k]).filter(e => e.win > 0);
     winData.sort(sortBattleData);
 
-    const size = winData.length > 5 ? 5 : winData.length;
+    const size = winData.length > countValue ? countValue : winData.length;
     const splitData = winData.slice(0, size);
 
     const calcResult = splitData.map(e => {

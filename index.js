@@ -101,9 +101,9 @@ const run = async () => {
         const rankParam = context.options.get("rank");
         const countParam = context.options.get("count");
 
-        const unitsValue = unitsParam != null ? unitsParam. value : '';
-        const rankValue = rankParam != null ? rankParam.value : '';
-        const countValue = intValue(countParam != null ? rankParam.countParam : '10', 5, 10);
+        const unitsValue = unitsParam !== null ? unitsParam. value : '';
+        const rankValue = rankParam !== null ? rankParam.value : '';
+        const countValue = intValue(countParam !== null ? countParam.value : '3', 3, 10);
 
         await context.deffer();
 
@@ -129,6 +129,7 @@ const run = async () => {
 const intValue = (v, def, max) => {
     try {
         const ret = parseInt(v);
+        console.log(ret);
         return ret > 0 && ret <=max ? ret : def; 
     } catch(e) {
         return def;

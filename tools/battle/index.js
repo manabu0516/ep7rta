@@ -9,8 +9,7 @@ const searchData = async (world_code, nick_no) => {
     const result = [];
 
     const url = "https://epic7.gg.onstove.com/gameApi/getBattleList?nick_no="+nick_no+"&world_code="+world_code+"&lang=ja&season_code=";
-    const response = await fetch(url, {method:'POST'});
-    const json = await response.json() 
+    const json = await callRequest(url, {method:'POST'});
 
     if(json.result_body.battle_list == null) {
         return result;
@@ -38,6 +37,19 @@ const searchData = async (world_code, nick_no) => {
 
     return result;
 };
+
+const callRequest = async (url ,opt) => {
+    const errors = [];
+    for (let i = 0; i < 5; i++) {
+        try {
+            const response = await fetch(url, {method:'POST'});
+            return await response.json();
+        } catch(e) {
+            errors.push(e);
+        }
+    }
+    throw e;
+}
 
 const battle_id = (code) => {
     return crypto.createHash('sha256').update(code, 'utf8').digest('hex');
@@ -100,10 +112,16 @@ const run = async() => {
         port: parseInt(mysqlConfig[4]),
     });
 
+    const skip = skipHandler('');
+
     for (let i = 0; i < targets.length; i++) {
         const user = targets[i];
 
         console.log(user.world_code + ':' + user.nick_no + '('+i+'/'+targets.length+')' );
+
+        if(skip(user.nick_no) === false) {
+            continue;
+        }
         
         const collection = await searchData(user.world_code, user.nick_no);
         for (let l = 0; l < collection.length; l++) {
@@ -114,6 +132,20 @@ const run = async() => {
                 + ' values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', values,);
         }
     }
+};
+
+const skipHandler = (nickno) => {
+    const context = {target:nickno, check : false};
+    return nickno === '' ? () => true : (code) => {
+        if(context.check === true) {
+            return true;
+        }
+        if(code === context.target) {
+            context.check = true;
+            return true;
+        }
+        return false;
+    };
 };
 
 run();

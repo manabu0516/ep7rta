@@ -1,7 +1,10 @@
 // https://discord.com/api/oauth2/authorize?client_id=1035058107899981854&permissions=3072&scope=bot
 
+//select my_dec_code,enemy_dec_code, count(*) as cnt from battles group by my_dec_code,enemy_dec_code order by cnt desc limit 15
+
 const fs = require('fs').promises;
 const mysql = require("mysql2/promise");
+const { fileURLToPath } = require('url');
 
 const initializeDiscord = (token) => {
     const Discord = require("discord.js");
@@ -101,7 +104,7 @@ const run = async () => {
         const rankParam = context.options.get("rank");
         const countParam = context.options.get("count");
 
-        const unitsValue = unitsParam !== null ? unitsParam. value : '';
+        const unitsValue = unitsParam !== null ? unitsParam.value.trim() : '';
         const rankValue = rankParam !== null ? rankParam.value : '';
         const countValue = intValue(countParam !== null ? countParam.value : '3', 3, 10);
 
@@ -124,16 +127,116 @@ const run = async () => {
             }
         };
     });
+
+    discordManager.on('ep7-rta-pic', async (context) => {
+        const m_unitsParam = context.options.get("m_units");
+        const e_unitsParam = context.options.get("e_units");
+        const rankParam = context.options.get("rank");
+        const countParam = context.options.get("count");
+
+        const m_unitsValue = m_unitsParam !== null ? m_unitsParam.value.trim() : '';
+        const e_unitsValue = e_unitsParam !== null ? e_unitsParam.value.trim() : '';
+
+        const rankValue = rankParam !== null ? rankParam.value : '';
+        const countValue = intValue(countParam !== null ? countParam.value : '3', 3, 10);
+
+        await context.deffer();
+
+        const entries1 = m_unitsValue.split(":");
+        const entries2 = e_unitsValue.split(':');
+
+        if(entries2.length < 1 || entries2 > 5 || entries1.length < 1 || entries1.length > 4
+                || entries2.length < entries1.length || (entries2.length-entries1.length) > 1) {
+            return async (message) => await message('パラメータ不正です');
+        }
+
+        const result = await do_ep7_rta_pic(db, heroData, entries1, entries2, rankValue, countValue);
+
+        return async (message) => {
+            
+            const dataText = result.map(e => {
+                const countText =  ( '    ' + e.count ).slice( -4 );
+                return '* ' + countText + '回 : '+ heroData[e.code] + ' (' +(e.code) + ')';
+            }).join('\r\n');
+
+            const e1text = entries1.map(e => '* '+ heroData[e]).join("\r\n");
+            const e2text = entries2.map(e => '* '+ heroData[e]).join("\r\n");
+
+            const enbded = context.embdedMessage()
+                .addFields({ name: 'next pic', value: dataText, inline: false })
+                .addFields({ name: 'my pic', value: e1text, inline: true })
+                .addFields({ name: 'enemy pic', value: e2text, inline: true })
+            await message({ embeds: [enbded] });
+        };
+    });
 };
 
 const intValue = (v, def, max) => {
     try {
         const ret = parseInt(v);
-        console.log(ret);
         return ret > 0 && ret <=max ? ret : def; 
     } catch(e) {
         return def;
     }
+};
+
+const do_ep7_rta_pic = async(db, heroData, entries1,entries2, rankValue, countValue) => {
+    const RANK_TARGETS_DEFAULT= ['legend','emperor','champion','challenger','master','gold','silver','bronze'];
+    const RANK_TARGETS_MAP = {
+        'legend' : ['legend'],
+        'emperor': ['legend','emperor'],
+        'champion': ['legend','emperor','champion'],
+        'challenger' : ['legend','emperor','champion','challenger'],
+        'master' : ['legend','emperor','champion','challenger','master']
+    };
+    const rankFilter = RANK_TARGETS_MAP[rankValue] ? RANK_TARGETS_MAP[rankValue] : RANK_TARGETS_DEFAULT;
+
+    const selectQuery = 'SELECT '
+        + 'battle_id,season_code,grade_code,battle_result,my_dec_code,enemy_dec_code,first_pick,m_dec,e_dec,m_preban,e_preban,'
+        + 'm_pic1,m_pic2,m_pic3,m_pic4,m_pic5,e_pic1,e_pic2,e_pic3,e_pic4,e_pic5 '
+        + 'FROM battles WHERE ';
+
+    const conditions = [];
+    for (let i = 0; i < entries1.length; i++) {
+        const e = entries1[i];
+        const idx = i+1;
+        conditions.push(' m_pic' + idx + '="' +e+ '" ' )
+    }
+    for (let i = 0; i < entries2.length; i++) {
+        const e = entries2[i];
+        const idx = i+1;
+        conditions.push(' e_pic' + idx + '="' +e+ '" ' )
+    }
+
+    const [rows, fields] = await db.query(selectQuery + conditions.join(' AND '));
+
+    const filterdData = rows.filter(e => {
+        return rankFilter.indexOf(e.grade_code) !== -1;
+    });
+
+    const seachIndex = entries1.length+1;
+    const resultMap = {};
+
+    filterdData.forEach(data => {
+        const code = data['m_pic' + seachIndex];
+        if(code === undefined || code === null || code.trim() === '') {
+            return;
+        }
+        if(resultMap[code] === undefined) {
+            resultMap[code] = {code:code, count:0};
+        }
+        resultMap[code].count += 1;
+    });
+
+    const resultData = Object.keys(resultMap).map(k => resultMap[k]);
+    resultData.sort((a, b) => {
+        return b.count - a.count;
+    });
+
+    const size = resultData.length > countValue ? countValue : resultData.length;
+    const splitData = resultData.slice(0, size);
+
+    return splitData;
 };
 
 const do_ep7_rta_battle = async(db, heroData, unitsValue, rankValue, countValue) => {

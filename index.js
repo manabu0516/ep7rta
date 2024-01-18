@@ -134,6 +134,8 @@ const run = async () => {
                 }
                 await thread.send('----------');
             }
+
+            await thread.send('fin');
         };
     });
 
@@ -170,9 +172,9 @@ const run = async () => {
 
             const e1text = entries1.map(e => '* '+ heroData[e]).join("\r\n");
             const e2text = entries2.map(e => '* '+ heroData[e]).join("\r\n");
-
+            
             const enbded = context.embdedMessage()
-                .addFields({ name: 'next pic', value: dataText, inline: false })
+                .addFields({ name: 'next pic', value: dataText === '' ? 'not found' : dataText, inline: false })
                 .addFields({ name: 'my pic', value: e1text, inline: true })
                 .addFields({ name: 'enemy pic', value: e2text, inline: true })
             await message({ embeds: [enbded] });

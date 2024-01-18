@@ -1,16 +1,11 @@
-// https://discord.com/api/oauth2/authorize?client_id=1035058107899981854&permissions=3072&scope=bot
-
-//select my_dec_code,enemy_dec_code, count(*) as cnt from battles group by my_dec_code,enemy_dec_code order by cnt desc limit 15
-
 const fs = require('fs').promises;
 const mysql = require("mysql2/promise");
-const { fileURLToPath } = require('url');
 
 const initializeDiscord = (token) => {
     const Discord = require("discord.js");
     
     const client = new Discord.Client({
-        intents: 0
+        intents: [Discord.GatewayIntentBits.Guilds], partials: [Discord.Partials.Channel]
     });
 
     const handler = {};
@@ -27,9 +22,9 @@ const initializeDiscord = (token) => {
         try {
             if (interaction.isCommand() === false) {
                 return;
-            }    
-            const commandName = interaction.commandName;
+            }
             
+            const commandName = interaction.commandName;
             const commandInvoke =handler[commandName];
     
             const context = {
@@ -47,7 +42,7 @@ const initializeDiscord = (token) => {
             }
             const response = await commandInvoke(context);
             const message = interaction.replied || interaction.deferred ? async (msg, option) => await interaction.followUp(msg, option) : (msg, option) => interaction.reply(msg, option);
-            await response(message);
+            await response(message, interaction);
         } catch(e) {
             return interaction.replied || interaction.deferred ? await interaction.followUp("error :" + e) : interaction.reply("error : "+e);
         }
@@ -114,16 +109,30 @@ const run = async () => {
         const result = await do_ep7_rta_battle(db, heroData, searchCode, rankValue, countValue);
         
         return async (message) => {
-            await message('**[対象編成]**' + '\r\n' + result.seachParam.map(e => e.e_name).join(' : '));
+            const result1 = await message('**[対象編成]**' + '\r\n' + result.seachParam.map(e => e.e_name).join(' : '));
+            const thread = await result1.startThread({
+                name: searchCode + ' result',
+                autoArchiveDuration: 60
+            });
+            
             for (let i = 0; i < result.calcResult.length; i++) {
                 const element = result.calcResult[i];
 
+                // for slim
+                element.result.forEach(e => {e.battle_id = '';});
+                
+                const battleResults = splitArray(element.result, 3);
                 const text = ''
-                    + '**[勝利編成]**' + '\r\n'
+                    + '----------' + '\r\n'
+                    + '**[勝利編成'+(i+1)+']**' + '\r\n'
                     + element.e1_name + ' : ' + element.e2_name + ' : ' + element.e3_name + ' : ' + element.e4_name + '\r\n'
-                    + '[' + element.win_count + '/' + (element.win_count + element. lose_count) + 'win : rate:' + element.win_rate + '%]' + ' '
-                    + '[詳細](https://manabu0516.github.io/ep7rta/result.html?json=' + encodeURIComponent(JSON.stringify(element.result))+')';
-                await message(text);
+                    + '[' + element.win_count + '/' + (element.win_count + element. lose_count) + 'win : rate:' + element.win_rate + '%]' + '\r\n'
+                
+                await thread.send(text);
+                for (let l = 0; l < battleResults.length; l++) {
+                    await thread.send('[詳細'+(l+1)+'](https://manabu0516.github.io/ep7rta/result.html?json=' + encodeURIComponent(JSON.stringify(battleResults[l]))+')');
+                }
+                await thread.send('----------');
             }
         };
     });
@@ -169,6 +178,13 @@ const run = async () => {
             await message({ embeds: [enbded] });
         };
     });
+};
+
+const splitArray = (array, number) => {
+    const length = Math.ceil(array.length / number);
+    return new Array(length)
+        .fill()
+        .map((_, i) => array.slice(i * number, (i + 1) * number));
 };
 
 const intValue = (v, def, max) => {

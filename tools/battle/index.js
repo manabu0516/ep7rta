@@ -48,7 +48,7 @@ const callRequest = async (url ,opt) => {
             errors.push(e);
         }
     }
-    throw e;
+    throw errors[errors.length-1];
 }
 
 const battle_id = (code) => {
@@ -100,8 +100,10 @@ const battleToQuery = (battle) => {
     ];
 };
 
+//world_asia:196235030
+//world_global:159336026
 const run = async() => {
-    const targets = JSON.parse(await fs.readFile('./database/users.json', 'utf8'));
+    const targets = JSON.parse(await fs.readFile('./database/users.json', 'utf8'))/*.filter(e => e.world_code === '')*/;
     const mysqlConfig = (await fs.readFile('./mysql.configure', 'utf8')).split("\r\n");
 
     const db = await mysql.createConnection({
@@ -116,12 +118,12 @@ const run = async() => {
 
     for (let i = 0; i < targets.length; i++) {
         const user = targets[i];
-
-        console.log(user.world_code + ':' + user.nick_no + '('+i+'/'+targets.length+')' );
-
         if(skip(user.nick_no) === false) {
             continue;
         }
+        console.log(user.world_code + ':' + user.nick_no + '('+i+'/'+targets.length+')' );
+
+        
         
         const collection = await searchData(user.world_code, user.nick_no);
         for (let l = 0; l < collection.length; l++) {

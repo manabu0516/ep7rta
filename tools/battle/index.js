@@ -100,7 +100,7 @@ const battleToQuery = (battle) => {
     ];
 };
 
-//world_asia:196235030
+//world_asia:203165935
 //world_global:159336026
 const run = async() => {
     const targets = JSON.parse(await fs.readFile('./database/users.json', 'utf8'))/*.filter(e => e.world_code === '')*/;

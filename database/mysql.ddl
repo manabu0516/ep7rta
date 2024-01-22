@@ -20,7 +20,7 @@ CREATE TABLE `battles` (
   `e_pic3` varchar(10) DEFAULT NULL,
   `e_pic4` varchar(10) DEFAULT NULL,
   `e_pic5` varchar(10) DEFAULT NULL,
-  PRIMARY KEY (`battle_id`),
+  PRIMARY KEY (`battle_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 CREATE INDEX enemy_dec_code_index on battles(enemy_dec_code);

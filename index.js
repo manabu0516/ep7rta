@@ -1,6 +1,10 @@
 const fs = require('fs').promises;
 const mysql = require("mysql2/promise");
 
+const logger = (msg, parameter) => {
+    console.log(msg + (parameter ? ' :' + JSON.stringify(parameter) : ''));
+};
+
 const initializeDiscord = (token) => {
     const Discord = require("discord.js");
     
@@ -26,11 +30,15 @@ const initializeDiscord = (token) => {
             
             const commandName = interaction.commandName;
             const commandInvoke =handler[commandName];
+
+            logger('initialize commadn ' + commandName, 
+                [interaction.guild ? interaction.guild.name : '',
+                interaction.member ? interaction.member.displayName : '']);
     
             const context = {
                 embdedMessage : embdedMessage,
-                author : interaction.member.displayName,
-                guild  : "",
+                author : interaction.member ? interaction.member.displayName : '',
+                guild  : interaction.guild ? interaction.guild.name : '',
                 options: interaction.options,
                 locale : interaction.locale,
                 deffer : async () => await interaction.deferReply()
@@ -44,6 +52,7 @@ const initializeDiscord = (token) => {
             const message = interaction.replied || interaction.deferred ? async (msg, option) => await interaction.followUp(msg, option) : (msg, option) => interaction.reply(msg, option);
             await response(message, interaction);
         } catch(e) {
+            logger('error', e);
             return interaction.replied || interaction.deferred ? await interaction.followUp("error :" + e) : interaction.reply("error : "+e);
         }
         
@@ -60,8 +69,9 @@ const initializeDiscord = (token) => {
 };
 
 const run = async () => {
-    const mysqlConfig = (await fs.readFile('./mysql.configure', 'utf8')).split("\r\n");
-    const db = await mysql.createConnection({
+    const mysqlConfig = (await fs.readFile('./mysql.configure', 'utf8')).split("\n").map(e => e.trim());
+    const db = await mysql.createPool({
+        connectionLimit : 5,
         user: mysqlConfig[0],
         host: mysqlConfig[1],
         password: mysqlConfig[2],
@@ -79,6 +89,8 @@ const run = async () => {
 
         const nameParam = context.options.get("name");
         const searchValue = nameParam != null ? nameParam. value : '';
+
+        logger('ep7-rta-code', [nameParam,searchValue]);
 
         const keys = Object.keys(heroData);
         keys.forEach(k => {
@@ -102,6 +114,8 @@ const run = async () => {
         const unitsValue = unitsParam !== null ? unitsParam.value.trim() : '';
         const rankValue = rankParam !== null ? rankParam.value : '';
         const countValue = intValue(countParam !== null ? countParam.value : '3', 3, 10);
+        
+        logger('ep7-rta-battle', [unitsValue,rankValue,countValue]);
 
         await context.deffer();
 
@@ -150,6 +164,8 @@ const run = async () => {
 
         const rankValue = rankParam !== null ? rankParam.value : '';
         const countValue = intValue(countParam !== null ? countParam.value : '3', 3, 10);
+
+        logger('ep7-rta-pic', [m_unitsValue,e_unitsValue,rankValue,countValue]);
 
         await context.deffer();
 

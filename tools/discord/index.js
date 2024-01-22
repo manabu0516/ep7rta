@@ -57,6 +57,18 @@ commands ["ep7-rta-battle"] = {
             },
             required : false
         },
+        {
+            type: 3,
+            name: "exclude",
+            description: "Specify the heroes you want to excel from the search results, separated by [:].",
+            description_localizations : {
+                "en-US" : "Specify the heroes you want to excel from the search results, separated by [:].",
+                "zh-CN" : "Specify the heroes you want to excel from the search results, separated by [:].",
+                "ko" : "Specify the heroes you want to excel from the search results, separated by [:].",
+                "ja" : "検索結果から除外したい英雄を[:]区切りで指定します。"
+            },
+            required : false
+        },
     ]
 };
 

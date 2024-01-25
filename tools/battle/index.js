@@ -114,24 +114,67 @@ const run = async() => {
     });
 
     const flowcontrol = sleepHandler(1000);
-
-    for (let i = 0; i < targets.length; i++) {
-        const user = targets[i];
-
-        const waitFor = await flowcontrol.start();
-        console.log(user.world_code + ':' + user.nick_no + '('+(i+1)+'/'+targets.length+')' + ' wait:'+waitFor);
-        
-        const collection = await searchData(user.world_code, user.nick_no);
-        for (let l = 0; l < collection.length; l++) {
-            const battle = collection[l];
-            const values = battleToQuery(battle);
-            await db.query('insert ignore into battles'
-                + '(battle_id,season_code,grade_code,battle_result,my_dec_code,enemy_dec_code,first_pick,m_dec,e_dec,m_preban,e_preban,m_pic1,m_pic2,m_pic3,m_pic4,m_pic5,e_pic1,e_pic2,e_pic3,e_pic4,e_pic5)'
-                + ' values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', values,);
+    const skipcontrol = await skipHandler('./tools/battle/skip.txt');
+    
+    try {
+        for (let i = 0; i < targets.length; i++) {
+            const user = targets[i];
+            if(skipcontrol.check(user.world_code, user.nick_no) === false) {
+                continue;
+            }
+    
+            const waitFor = await flowcontrol.start();
+            console.log(user.world_code + ':' + user.nick_no + '('+(i+1)+'/'+targets.length+')' + ' wait:'+waitFor);
+            
+            skipcontrol.handle(user.world_code, user.nick_no);
+    
+            const collection = await searchData(user.world_code, user.nick_no);
+            for (let l = 0; l < collection.length; l++) {
+                const battle = collection[l];
+                const values = battleToQuery(battle);
+                await db.query('insert ignore into battles'
+                    + '(battle_id,season_code,grade_code,battle_result,my_dec_code,enemy_dec_code,first_pick,m_dec,e_dec,m_preban,e_preban,m_pic1,m_pic2,m_pic3,m_pic4,m_pic5,e_pic1,e_pic2,e_pic3,e_pic4,e_pic5)'
+                    + ' values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', values,);
+            }
+            await flowcontrol.end();
         }
-
-        await flowcontrol.end();
+        skipcontrol.complete();
+    } finally {
+        await skipcontrol.presist();
     }
+};
+
+const skipHandler = async (filePath) => {
+    try {await fs.lstat(filepath)}
+    catch (e) {await fs.writeFile(filePath, ':', 'utf8')}
+
+    const data = (await fs.readFile(filePath, 'utf8')).split(':').map(e => e.trim());
+    const context = {nick_no:data[0], world_code : data[0], check : false, persist : data.join(':')};
+
+    return {
+        check : (world_code, nick_no) => {
+            if(context.world_code !== '' && context.world_code !== world_code) {
+                return false;
+            }
+            if(context.check === true) {
+                return true;
+            }
+            if(context.nick_no === nick_no) {
+                context.check = true;
+            }
+            return context.check;
+        },
+
+        handle : (world_code, nick_no) => {
+            context.persist = world_code + ':' + nick_no;
+        },
+        complete : () => {
+            context.persist = ':';
+        },
+        perist : async () => {
+            await fs.writeFile(filePath, context.persist, 'utf8');
+        }
+    };
 };
 
 const sleepHandler = (waitFor) => {
@@ -154,20 +197,6 @@ const sleepHandler = (waitFor) => {
 
             await new Promise(resolve => setTimeout(resolve, context.timer));
         },
-    };
-};
-
-const skipHandler = (nickno) => {
-    const context = {target:nickno, check : false};
-    return nickno === '' ? () => true : (code) => {
-        if(context.check === true) {
-            return true;
-        }
-        if(code === context.target) {
-            context.check = true;
-            return true;
-        }
-        return false;
     };
 };
 

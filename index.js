@@ -81,7 +81,7 @@ const run = async () => {
 
     const heroData = JSON.parse(await fs.readFile('./database/heros.json', 'utf8'));
 
-    const discordToken = await fs.readFile('./discrod.token', 'utf8');
+    const discordToken = (await fs.readFile('./discrod.token', 'utf8')).trim();
     const discordManager = await initializeDiscord(discordToken);
 
     discordManager.on('ep7-rta-code', async (context) => {

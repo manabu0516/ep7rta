@@ -1,4 +1,4 @@
-##  /ep7-rta-battle コマンド
+##  /ep7-rta-pick コマンド
 
 ### ■概要
 
@@ -37,7 +37,7 @@ c1126:c2046
 ※基本、調べるのは次の自身のピックになるため上記制約となっています。
 
 よくわからない人は以下のサイトで英雄をピック順に入力、選択して表示されたコードを貼り付けてください<br/>
- https://manabu0516.github.io/ep7rta/code1.html
+ https://manabu0516.github.io/ep7rta/code2.html
 
  ![コマンド実行例1](./bot/image/ep7rtapick_0004.png)
 

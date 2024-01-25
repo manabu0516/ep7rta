@@ -3,6 +3,7 @@
 const fetch = require('node-fetch');
 const mysql = require("mysql2/promise");
 const crypto = require('crypto');
+const { start } = require('repl');
 const fs = require('fs').promises;
 
 const searchData = async (world_code, nick_no) => {
@@ -100,10 +101,8 @@ const battleToQuery = (battle) => {
     ];
 };
 
-//world_asia:203165935
-//world_global:159336026
 const run = async() => {
-    const targets = JSON.parse(await fs.readFile('./database/users.json', 'utf8'))/*.filter(e => e.world_code === '')*/;
+    const targets = JSON.parse(await fs.readFile('./database/users.json', 'utf8'));
     const mysqlConfig = (await fs.readFile('./mysql.configure', 'utf8')).split("\r\n");
 
     const db = await mysql.createConnection({
@@ -114,16 +113,13 @@ const run = async() => {
         port: parseInt(mysqlConfig[4]),
     });
 
-    const skip = skipHandler('');
+    const flowcontrol = sleepHandler(1000);
 
     for (let i = 0; i < targets.length; i++) {
         const user = targets[i];
-        if(skip(user.nick_no) === false) {
-            continue;
-        }
-        console.log(user.world_code + ':' + user.nick_no + '('+i+'/'+targets.length+')' );
 
-        
+        const waitFor = await flowcontrol.start();
+        console.log(user.world_code + ':' + user.nick_no + '('+(i+1)+'/'+targets.length+')' + ' wait:'+waitFor);
         
         const collection = await searchData(user.world_code, user.nick_no);
         for (let l = 0; l < collection.length; l++) {
@@ -133,7 +129,32 @@ const run = async() => {
                 + '(battle_id,season_code,grade_code,battle_result,my_dec_code,enemy_dec_code,first_pick,m_dec,e_dec,m_preban,e_preban,m_pic1,m_pic2,m_pic3,m_pic4,m_pic5,e_pic1,e_pic2,e_pic3,e_pic4,e_pic5)'
                 + ' values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', values,);
         }
+
+        await flowcontrol.end();
     }
+};
+
+const sleepHandler = (waitFor) => {
+    const context = {
+        start : Date.now(),
+        waitFor : waitFor,
+        timer : 0
+    };
+
+    return {
+        start : async () => {
+            context.start = Date.now();
+            return context.timer;
+        },
+
+        end : async() => {
+            const end = Date.now();
+            const timer = context.waitFor - (end - context.start);
+            context.timer = timer < 0 ? 0 :timer;
+
+            await new Promise(resolve => setTimeout(resolve, context.timer));
+        },
+    };
 };
 
 const skipHandler = (nickno) => {

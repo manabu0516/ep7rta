@@ -159,7 +159,7 @@ const skipHandler = async (filePath) => {
             if(context.check === true) {
                 return true;
             }
-            if(context.nick_no === nick_no) {
+            if(context.nick_no === '' || context.nick_no === nick_no) {
                 context.check = true;
             }
             return context.check;
@@ -171,7 +171,7 @@ const skipHandler = async (filePath) => {
         complete : () => {
             context.persist = ':';
         },
-        perist : async () => {
+        presist : async () => {
             await fs.writeFile(filePath, context.persist, 'utf8');
         }
     };

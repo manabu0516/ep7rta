@@ -103,7 +103,7 @@ const battleToQuery = (battle) => {
 
 const run = async() => {
     const targets = JSON.parse(await fs.readFile('./database/users.json', 'utf8'));
-    const mysqlConfig = (await fs.readFile('./mysql.configure', 'utf8')).split("\r\n");
+    const mysqlConfig = (await fs.readFile('./mysql.configure', 'utf8')).split("\n").map(e => e.trim());
 
     const db = await mysql.createConnection({
         user: mysqlConfig[0],

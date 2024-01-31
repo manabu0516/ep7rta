@@ -139,17 +139,20 @@ const run = async() => {
             await flowcontrol.end();
         }
         skipcontrol.complete();
+    } catch (e) {
+        console.log(e);
     } finally {
         await skipcontrol.presist();
     }
+    console.log("finish task.");
 };
 
 const skipHandler = async (filePath) => {
-    try {await fs.lstat(filepath)}
-    catch (e) {await fs.writeFile(filePath, ':', 'utf8')}
+    try {await fs.lstat(filePath);}
+    catch (e) {await fs.writeFile(filePath, ':', 'utf8');}
 
     const data = (await fs.readFile(filePath, 'utf8')).split(':').map(e => e.trim());
-    const context = {nick_no:data[0], world_code : data[0], check : false, persist : data.join(':')};
+    const context = {nick_no:data[1], world_code : data[0], check : false, persist : data.join(':')};
 
     return {
         check : (world_code, nick_no) => {

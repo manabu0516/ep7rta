@@ -69,9 +69,7 @@ const persistenceLowData = ((configure, utility, logger) => {
 
     return async () => {
         logger.debug("configure :", configure.epicseven);
-        const batchSize = (users_group_1.length / configure.epicseven.thredsize)+1;
-        const sleepSize = configure.epicseven.sleepSize;
-
+        
         logger.info("rsolve user list ...");
         const users_group_1 = await epicseven.resolveUsersInfo([
             epicseven.WORLD_CODE.world_jpn,
@@ -80,6 +78,10 @@ const persistenceLowData = ((configure, utility, logger) => {
             epicseven.WORLD_CODE.world_asia,
             epicseven.WORLD_CODE.world_global
         ]);
+        
+        const batchSize = (users_group_1.length / configure.epicseven.thredsize)+1;
+        const sleepSize = configure.epicseven.sleepSize;
+
         logger.info("  --- complete.", {});
         logger.debug("user size : " + users_group_1.length);
 

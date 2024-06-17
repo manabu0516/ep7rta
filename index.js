@@ -4,13 +4,16 @@ const run = async () => {
 
     const utility = require("./modules/utility");
     const configure = await require("./modules/configure")({
-        "dir" : process.cwd() + '/configure'
+        "dir" : __dirname + '/configure'
     });
+    
+    
 
     const logger = utility.logger("rp7rta", configure.log.level);
 
     const func = {
-        rawdata : persistenceLowData(configure, utility, logger)
+        rawdata : persistenceLowData(configure, utility, logger),
+        analyze : analyzebattleData(configure, utility, logger),
     };
     
     for (let idx = 0; idx < commands.length; idx++) {
@@ -26,13 +29,15 @@ const run = async () => {
         await invoker();
         logger.info("finish command :" + cmd + ' end.');
     }
-
-    /*
-    const analyzer = await require("./modules/analyzer")(configure, logger);
-    await analyzer.process();
-    */
-
 };
+
+const analyzebattleData = ((configure, utility, logger) => {
+
+    return async () => {
+        const analyzer = await require("./modules/analyzer")(configure, logger);
+        await analyzer.process();
+    };
+});
 
 const persistenceLowData = ((configure, utility, logger) => {
     const epicseven = require("./modules/epicseven");
@@ -50,6 +55,7 @@ const persistenceLowData = ((configure, utility, logger) => {
                     await persistence.persist(battle);
                     message.push('complete = ' + battle.length);
                 } catch(e) {
+                    logger.error("handle error ." , e);
                     message.push("error = " + e);
                 }
     
@@ -62,8 +68,11 @@ const persistenceLowData = ((configure, utility, logger) => {
     };
 
     return async () => {
-        await (await require("./modules/presistence")(configure)).ddl();
+        logger.debug("configure :", configure.epicseven);
+        const batchSize = (users_group_1.length / configure.epicseven.thredsize)+1;
+        const sleepSize = configure.epicseven.sleepSize;
 
+        logger.info("rsolve user list ...");
         const users_group_1 = await epicseven.resolveUsersInfo([
             epicseven.WORLD_CODE.world_jpn,
             epicseven.WORLD_CODE.world_kor,
@@ -71,20 +80,24 @@ const persistenceLowData = ((configure, utility, logger) => {
             epicseven.WORLD_CODE.world_asia,
             epicseven.WORLD_CODE.world_global
         ]);
+        logger.info("  --- complete.", {});
+        logger.debug("user size : " + users_group_1.length);
 
-
-        const batchSize = (users_group_1.length / configure.epicseven.thredsize)+1;
-        const sleepSize = configure.epicseven.sleepSize;
+        logger.info("process mysql ddl ...", {});
+        await (await require("./modules/presistence")(configure)).ddl();
+        logger.info("  --- complete.", {});
 
         const resolverGroup = [];
         const user_group =  utility.sliceArray(users_group_1, batchSize);
 
+        logger.info("process lowdata start ", {});
         for (let i = 0; i < user_group.length; i++) {
             const resolver = instanceDataResolve(user_group[i], epicseven, utility.sleepHandler(sleepSize), await require("./modules/presistence")(configure), logger);
                 resolverGroup.push(resolver());
         }
 
-        await Promise.all(resolverGroup)
+        await Promise.all(resolverGroup);
+        logger.info("process complete.", {});
     };
 });
 

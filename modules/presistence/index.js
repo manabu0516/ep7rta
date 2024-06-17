@@ -50,7 +50,7 @@ module.exports = async (configure) => {
     const context = {rows : []};
 
     const db = await mysql.createPool({
-        connectionLimit : 5,
+        connectionLimit : 2,
         user: configure.mysql.user,
         host: configure.mysql.host,
         password: configure.mysql.password,

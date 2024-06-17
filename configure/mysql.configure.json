@@ -1,0 +1,10 @@
+{
+    "mysql" : {
+        "host" : "localhost",
+        "port" : 3306,
+        "database" : "ep7rta",
+        "user" : "node",
+         "password" : "password"
+    }
+
+}

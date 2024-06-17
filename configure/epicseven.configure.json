@@ -1,0 +1,6 @@
+{
+    "epicseven" : {
+        "thredsize" : 2,
+        "sleepSize" : 300
+    }
+}

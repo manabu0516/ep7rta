@@ -64,33 +64,27 @@ const persistenceLowData = ((configure, utility, logger) => {
     return async () => {
         await (await require("./modules/presistence")(configure)).ddl();
 
-        const users_group_1 = utility.sliceArray(await epicseven.resolveUsersInfo([
+        const users_group_1 = await epicseven.resolveUsersInfo([
             epicseven.WORLD_CODE.world_jpn,
             epicseven.WORLD_CODE.world_kor,
             epicseven.WORLD_CODE.world_eu,
-        ]), 70000);
-    
-        const users_group_2 = utility.sliceArray(await epicseven.resolveUsersInfo([
             epicseven.WORLD_CODE.world_asia,
-        ]), 70000);
+            epicseven.WORLD_CODE.world_global
+        ]);
 
-        const users_group_3 = utility.sliceArray(await epicseven.resolveUsersInfo([
-            epicseven.WORLD_CODE.world_global,
-        ]), 70000);
+
+        const batchSize = (users_group_1.length / configure.epicseven.thredsize)+1;
+        const sleepSize = configure.epicseven.sleepSize;
 
         const resolverGroup = [];
-        const user_group = [users_group_1, users_group_2, users_group_3];
+        const user_group =  utility.sliceArray(users_group_1, batchSize);
 
         for (let i = 0; i < user_group.length; i++) {
-            const group = user_group[i];
-            for (let j = 0; j < group.length; j++) {
-                const resolver = instanceDataResolve(group[j], epicseven, utility.sleepHandler(300), await require("./modules/presistence")(configure), logger);
+            const resolver = instanceDataResolve(user_group[i], epicseven, utility.sleepHandler(sleepSize), await require("./modules/presistence")(configure), logger);
                 resolverGroup.push(resolver());
-            }
         }
 
-        await Promise.all(resolverGroup);
-    
+        await Promise.all(resolverGroup)
     };
 });
 

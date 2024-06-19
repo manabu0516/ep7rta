@@ -69,11 +69,25 @@ module.exports = async (configure) => {
             context.rows.splice(0);
         }
     };
+
     context.ddl = async () => {
         const ddl_path = __dirname + '/mysql.ddl'; 
         const query = await fs.readFile(ddl_path, 'utf8')
 
         await db.query(query);
+    };
+
+    context.recourdCount = async () => {
+        return (await db.query("select count(battle_id) as cnt from battles where process_status = 0"))[0][0]["cnt"];
+    };
+
+    context.resolveRecourd = async (limit, offset) => {
+        const data = (await db.query("select * from battles where process_status = 0 limit ? offset ?", [limit, offset]))[0];
+        return data;
+    };
+    
+    context.markProcessed = async (record_ids) => {
+        await db.query("UPDATE battles SET process_status = 1 WHERE battle_id IN (?)", [record_ids]);
     };
 
     context.destroy = () => {

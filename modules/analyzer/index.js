@@ -1,58 +1,4 @@
-const mysql = require("mysql2/promise");
-const fs = require('fs').promises;
 const NodeCouchDb = require('node-couchdb');
-
-const PROCESS_SIZE = 500;
-
-const createNode = (code) => {
-
-    const data = {code : code,count: 0};
-    return {"_" : data}
-};
-
-const processTree = (data, tree) => {
-
-    const mpic = [
-        data.m_pic1.split(":")[0],
-        data.m_pic2.split(":")[0],
-        data.m_pic3.split(":")[0],
-        data.m_pic4.split(":")[0],
-        data.m_pic5.split(":")[0]
-    ];
-
-    const epic = [
-        data.e_pic1.split(":")[0],
-        data.e_pic2.split(":")[0],
-        data.e_pic3.split(":")[0],
-        data.e_pic4.split(":")[0],
-        data.e_pic5.split(":")[0]
-    ];
-
-    const firstpick = data.first_pick === 1;
-
-    const f_pic = firstpick ? mpic : epic;
-    const s_pic = firstpick ? epic : mpic;
-
-    const targets = [
-        f_pic[0],
-        s_pic[0], s_pic[1],
-        f_pic[1], f_pic[2],
-        s_pic[2], s_pic[3],
-        f_pic[3], f_pic[4],
-        s_pic[4]
-    ];
-
-    let node = tree;
-    targets.forEach(code => {
-        if(node[code] === undefined) {
-            node[code] = createNode(code);   
-        }
-        node = node[code];
-        node["_"].count += 1;
-    });
-    
-};
-
 
 const processBattleEntry = (data) => {
     const mpic1 = data.m_pic1.split(":");
@@ -93,15 +39,11 @@ module.exports = async (configure, logger) => {
 
     const context = {};
 
-    const couch = new NodeCouchDb({auth: {user: "admin",pass: "password"}});
-
-    const db = await mysql.createPool({
-        connectionLimit : 5,
-        user: configure.mysql.user,
-        host: configure.mysql.host,
-        password: configure.mysql.password,
-        database: configure.mysql.database,
-        port: configure.mysql.port,
+    const couch = new NodeCouchDb({
+        auth: {
+            user: configure.couch.user,
+            pass: configure.couch.password
+        }
     });
 
     context.tree = {};
@@ -112,51 +54,51 @@ module.exports = async (configure, logger) => {
         logger.info("create analyze database [battle_analyze]");
     }
 
-    context.process = async () => {
+    context.process = async (data) => {        
+        const analyzed_data = data.map(processBattleEntry);
+        const cache = {insert : {}, update : {}};
 
-        pageing = {offset : 0, limit : PROCESS_SIZE}
-        const count = (await db.query("select count(battle_id) as cnt from battles where process_status = 0"))[0][0]["cnt"];
+        for (let i = 0; i < analyzed_data.length; i++) {
+            const element = analyzed_data[i];
+            const entry = await resolveBattleEntry(couch, element.code, cache);
+            entry.battles.push(element.battles);
+        }
         
-        while(pageing.offset < count) {
-            logger.info("process analyze.", [pageing.offset, count]);
-            const data = (await db.query("select * from battles where process_status = 0 limit ? offset ?", [pageing.limit, pageing.offset]))[0];
-            //data.forEach(e => processTree(e, context.tree));
+        const f1 = cache.insert.map(element => {
+            return couch.insert("battle_analyze", element);
+        });
 
-            const analyzed_data = data.map(processBattleEntry);
+        const f2 = cache.update.map(element => {
+            return couch.update("battle_analyze", element);
+        });
 
-            for (let i = 0; i < analyzed_data.length; i++) {
-                const element = analyzed_data[i];
-                const entry = await resolveBattleEntry(couch, element.code);
-
-                if(entry === null) {
-                    //logger.info("insert document.", element.code);
-                    await couch.insert("battle_analyze", {
-                        _id: element.code,
-                        battles : [element.battles]
-                    });
-                } else {
-                    //logger.info("update document.", element.code);
-                    entry.data.battles.push(element.battles);
-                    await couch.update("battle_analyze", entry.data);
-                    
-                }
-            }
-
-            pageing.offset += PROCESS_SIZE;
-        };
+        Promise.all([f1, f2]);
     };
 
     return context
 };
 
-const resolveBattleEntry = async (couch ,id) => {
+const resolveBattleEntry = async (couch ,id, cache) => {
     try {
-        return await couch.get("battle_analyze", id);
-    } catch (e) {
-        if(e.message === "Document is not found") {
-            return null;
+        if(cache.insert[id] !== undefined) {
+            return cache.insert[id];
         }
-        throw e;
+    
+        if(cache.update[id] !== undefined) {
+            return cache.update[id];
+        }
+
+        const entry = await couch.get("battle_analyze", id);
+        cache.update[id] = entry.data;
+        return entry.data;
+
+    } catch (e) {
+        if(e.message !== "Document is not found") {
+            throw e;
+        }
+
+        cache.insert[id] = {_id: id,battles : []};
+        return cache.insert[id];
     }
     
 }

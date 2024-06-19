@@ -6,8 +6,6 @@ const run = async () => {
     const configure = await require("./modules/configure")({
         "dir" : __dirname + '/configure'
     });
-    
-    
 
     const logger = utility.logger("rp7rta", configure.log.level);
 
@@ -32,10 +30,28 @@ const run = async () => {
 };
 
 const analyzebattleData = ((configure, utility, logger) => {
+    const PROCESS_SIZE = 500;
 
     return async () => {
         const analyzer = await require("./modules/analyzer")(configure, logger);
-        await analyzer.process();
+
+        const pageing = {offset : 0, limit : PROCESS_SIZE};
+        const persistence = await require("./modules/presistence")(configure);
+        
+        const count = await persistence.recourdCount();
+        logger.debug("analyze target size : " + count);
+
+        while(pageing.offset < count) {
+            const data = await persistence.resolveRecourd(pageing.limit, pageing.offset);
+            const record_ids = data.map(d => d.battle_id);
+
+            analyzer.process(data);
+
+            pageing.offset += PROCESS_SIZE;
+            await persistence.markProcessed(record_ids);
+        };
+
+        persistence.destroy();
     };
 });
 

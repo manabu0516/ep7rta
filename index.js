@@ -30,8 +30,7 @@ const run = async () => {
 };
 
 const analyzebattleData = ((configure, utility, logger) => {
-    const PROCESS_SIZE = 500;
-
+    const PROCESS_SIZE = configure.analyzer.batchsize;
     return async () => {
         const analyzer = await require("./modules/analyzer")(configure, logger);
 
@@ -39,19 +38,24 @@ const analyzebattleData = ((configure, utility, logger) => {
         const persistence = await require("./modules/presistence")(configure);
         
         const count = await persistence.recourdCount();
-        logger.debug("analyze target size : " + count);
+        logger.debug("analyze target size : " + count, {});
 
+        logger.info("analyze start", {});
         while(pageing.offset < count) {
+            logger.info("analyze data", pageing);
             const data = await persistence.resolveRecourd(pageing.limit, pageing.offset);
             const record_ids = data.map(d => d.battle_id);
 
-            analyzer.process(data);
+            await analyzer.process1(data);
+            await analyzer.process2(data);
 
             pageing.offset += PROCESS_SIZE;
             await persistence.markProcessed(record_ids);
+            break;
         };
 
-        persistence.destroy();
+        await persistence.destroy();
+        logger.info("analyze complete", {});
     };
 });
 

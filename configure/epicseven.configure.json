@@ -1,6 +1,9 @@
 {
     "epicseven" : {
-        "thredsize" : 2,
-        "sleepSize" : 300
+        "thredsize" : 4,
+        "sleepSize" : 200
+    },
+    "analyzer" : {
+        "batchsize" : 200
     }
 }

@@ -43,14 +43,13 @@ const analyzebattleData = ((configure, utility, logger) => {
         logger.info("analyze start", {});
         while(pageing.offset < count) {
             logger.info("analyze data", pageing);
-            const data = await persistence.resolveRecourd(pageing.limit, pageing.offset);
+            const data = await persistence.resolveRecourd(pageing.limit, pageing.offset, 0);
             const record_ids = data.map(d => d.battle_id);
 
             await analyzer.process1(data);
-            await analyzer.process2(data);
 
             pageing.offset += PROCESS_SIZE;
-            await persistence.markProcessed(record_ids);
+            await persistence.markProcessed(record_ids, 1);
         };
 
         await persistence.destroy();

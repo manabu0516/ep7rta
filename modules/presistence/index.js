@@ -81,13 +81,13 @@ module.exports = async (configure) => {
         return (await db.query("select count(battle_id) as cnt from battles where process_status = 0"))[0][0]["cnt"];
     };
 
-    context.resolveRecourd = async (limit, offset) => {
-        const data = (await db.query("select * from battles where process_status = 0 limit ? offset ?", [limit, offset]))[0];
+    context.resolveRecourd = async (limit, offset, flg) => {
+        const data = (await db.query("select * from battles where process_status = ? limit ? offset ?", [flg, limit, offset]))[0];
         return data;
     };
     
-    context.markProcessed = async (record_ids) => {
-        await db.query("UPDATE battles SET process_status = 1 WHERE battle_id IN (?)", [record_ids]);
+    context.markProcessed = async (record_ids, flg) => {
+        await db.query("UPDATE battles SET process_status = ? WHERE battle_id IN (?)", [flg, record_ids]);
     };
 
     context.destroy = () => {

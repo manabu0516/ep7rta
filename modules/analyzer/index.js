@@ -134,17 +134,16 @@ module.exports = async (configure, logger) => {
             insert : Object.keys(cache.insert).length,
             update : Object.keys(cache.update).length
         });
-        
-        const f1 = Object.keys(cache.insert).map(e => cache.insert[e]).map(element => {
-            return couch.insert("battle_analyze", element);
-        });
 
-        const f2 = Object.keys(cache.update).map(e => cache.update[e]).map(element => {
-            return couch.update("battle_analyze", element);
-        });
+        for (let i = 0; i < cache.insert.length; i++) {
+            const element = cache.insert[i];
+            await couch.insert("battle_analyze", element);
+        }
 
-        await Promise.all(f1);
-        await Promise.all(f2);
+        for (let i = 0; i < cache.pickban_analyze.length; i++) {
+            const element = cache.pickban_analyze[i];
+            await couch.update("pickban_analyze", element);
+        }
     };
 
     context.process2 = async (data) => {
@@ -163,17 +162,15 @@ module.exports = async (configure, logger) => {
             update : Object.keys(cache.update).length
         });
 
-        const f1 = Object.keys(cache.insert).map(e => cache.insert[e]).map(element => {
-            return couch.insert("pickban_analyze", element);
-        });
+        for (let i = 0; i < cache.insert.length; i++) {
+            const element = cache.insert[i];
+            await couch.insert("pickban_analyze", element);
+        }
 
-        const f2 = Object.keys(cache.update).map(e => cache.update[e]).map(element => {
-            return couch.update("pickban_analyze", element);
-        });
-
-        await Promise.all(f1);
-        await Promise.all(f2);
-
+        for (let i = 0; i < cache.pickban_analyze.length; i++) {
+            const element = cache.pickban_analyze[i];
+            await couch.update("pickban_analyze", element);
+        }
     };
 
     return context

@@ -5,5 +5,8 @@
     },
     "analyzer" : {
         "batchsize" : 200
+    },
+    "apiserver" : {
+        "port" : 3000
     }
 }

@@ -51,7 +51,6 @@ const analyzebattleData = ((configure, utility, logger) => {
 
             pageing.offset += PROCESS_SIZE;
             await persistence.markProcessed(record_ids);
-            break;
         };
 
         await persistence.destroy();

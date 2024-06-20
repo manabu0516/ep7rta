@@ -130,7 +130,7 @@ module.exports = async (configure, logger) => {
             entry.battles.push(element.battles);
         }
 
-        logger.info("register analyzed data . ", {
+        logger.info("register battle analyzed data . ", {
             insert : Object.keys(cache.insert).length,
             update : Object.keys(cache.update).length
         });
@@ -143,7 +143,8 @@ module.exports = async (configure, logger) => {
             return couch.update("battle_analyze", element);
         });
 
-        Promise.all([f1, f2]);
+        await Promise.all(f1);
+        await Promise.all(f2);
     };
 
     context.process2 = async (data) => {
@@ -157,6 +158,11 @@ module.exports = async (configure, logger) => {
             preparePickData(element.pick, 0, element.firstpick_win, entry);
         }
 
+        logger.info("register pickban analyzed data . ", {
+            insert : Object.keys(cache.insert).length,
+            update : Object.keys(cache.update).length
+        });
+
         const f1 = Object.keys(cache.insert).map(e => cache.insert[e]).map(element => {
             return couch.insert("pickban_analyze", element);
         });
@@ -165,7 +171,8 @@ module.exports = async (configure, logger) => {
             return couch.update("pickban_analyze", element);
         });
 
-        Promise.all([f1, f2]);
+        await Promise.all(f1);
+        await Promise.all(f2);
 
     };
 
@@ -173,18 +180,18 @@ module.exports = async (configure, logger) => {
 };
 
 const resolveBattleEntry = async (couch ,id, cache) => {
-    return resolveEntry(couch,id,cache, (code) => {
+    return resolveEntry(couch,id,cache, "battle_analyze", (code) => {
         return {"_id": code, battles : []}; 
     });
 };
 
 const resolvePickBanEntry = async (couch ,id, cache) => {
-    return resolveEntry(couch,id,cache, (code) => {
+    return resolveEntry(couch,id,cache, "pickban_analyze", (code) => {
         return {"_id": code}; 
     });
 };
 
-const resolveEntry = async (couch ,id, cache, factory) => {
+const resolveEntry = async (couch ,id, cache, dbname, factory) => {
     try {
         if(cache.insert[id] !== undefined) {
             return cache.insert[id];
@@ -194,7 +201,7 @@ const resolveEntry = async (couch ,id, cache, factory) => {
             return cache.update[id];
         }
 
-        const entry = await couch.get("battle_analyze", id);
+        const entry = await couch.get(dbname, id);
         cache.update[id] = entry.data;
         return entry.data;
 

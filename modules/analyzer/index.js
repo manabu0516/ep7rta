@@ -1,4 +1,4 @@
-const NodeCouchDb = require('node-couchdb');
+const fetch = require('node-fetch');
 
 const processPickBanEntry = (data) => {
     const mpic = [
@@ -96,16 +96,61 @@ const processBattleEntry = (data) => {
     };
 };
 
+const createConnector = (configure) => {
+
+    const context = {};
+
+    const buffer = Buffer.from(configure.user + ":" + configure.pass);
+    const authString = "Basic " + buffer.toString("base64");
+    const baseUrl = "http://127.0.0.1:5984/"
+
+    context.buldDoc = async (dbname, parameter) => {
+        const response = await fetch(baseUrl + dbname + "/_bulk_docs", {
+            method: 'POST',
+            body: JSON.stringify(parameter),
+            headers: {'Content-Type': 'application/json', 'Authorization': authString}
+        });
+
+        return await response.json();
+    };
+
+    context.listDatabases = async () => {
+        const response = await fetch(baseUrl + "_all_dbs", {
+            method: 'GET',
+            headers: {'Authorization': authString}
+        });
+        return await response.json();
+    };
+
+    context.createDatabase = async(dbname) => {
+        const response = await fetch(baseUrl + dbname, {
+            method: 'PUT',
+            headers: {'Authorization': authString}
+        });
+        return await response.json();
+    };
+
+    context.get = async(dbname, id) => {
+        const response = await fetch(baseUrl + dbname + '/' + id, {
+            method: 'GET',
+            headers: {'Authorization': authString}
+        });
+        const json = await response.json();
+        return json["_id"] === undefined ? null : json;
+    };
+
+    return context;
+};
+
 module.exports = async (configure, logger) => {
 
     const context = {};
 
-    const couch = new NodeCouchDb({
-        auth: {
-            user: configure.couch.user,
-            pass: configure.couch.password
-        }
+    const couch = createConnector({
+        user: configure.couch.user,
+        pass: configure.couch.password
     });
+
 
     context.tree = {};
 
@@ -135,15 +180,16 @@ module.exports = async (configure, logger) => {
             update : Object.keys(cache.update).length
         });
 
-        for (let i = 0; i < cache.insert.length; i++) {
-            const element = cache.insert[i];
-            await couch.insert("battle_analyze", element);
-        }
+        const parameter = {"docs": []};
 
-        for (let i = 0; i < cache.pickban_analyze.length; i++) {
-            const element = cache.pickban_analyze[i];
-            await couch.update("pickban_analyze", element);
-        }
+        Object.keys(cache.insert).forEach(key => {
+            parameter.docs.push(cache.insert[key]);
+        });
+        Object.keys(cache.update).forEach(key => {
+            parameter.docs.push(cache.update[key]);
+        });
+
+        await couch.buldDoc("battle_analyze", parameter);
     };
 
     context.process2 = async (data) => {
@@ -162,15 +208,16 @@ module.exports = async (configure, logger) => {
             update : Object.keys(cache.update).length
         });
 
-        for (let i = 0; i < cache.insert.length; i++) {
-            const element = cache.insert[i];
-            await couch.insert("pickban_analyze", element);
-        }
+        const parameter = {"docs": []};
+        
+        Object.keys(cache.insert).forEach(key => {
+            parameter.docs.push(cache.insert[key]);
+        });
+        Object.keys(cache.update).forEach(key => {
+            parameter.docs.push(cache.update[key]);
+        });
 
-        for (let i = 0; i < cache.pickban_analyze.length; i++) {
-            const element = cache.pickban_analyze[i];
-            await couch.update("pickban_analyze", element);
-        }
+        await couch.buldDoc("pickban_analyze", parameter);
     };
 
     return context
@@ -189,26 +236,21 @@ const resolvePickBanEntry = async (couch ,id, cache) => {
 };
 
 const resolveEntry = async (couch ,id, cache, dbname, factory) => {
-    try {
-        if(cache.insert[id] !== undefined) {
-            return cache.insert[id];
-        }
-    
-        if(cache.update[id] !== undefined) {
-            return cache.update[id];
-        }
-
-        const entry = await couch.get(dbname, id);
-        cache.update[id] = entry.data;
-        return entry.data;
-
-    } catch (e) {
-        if(e.message !== "Document is not found") {
-            throw e;
-        }
-
-        cache.insert[id] = factory(id);
+    if(cache.insert[id] !== undefined) {
         return cache.insert[id];
     }
-    
+
+    if(cache.update[id] !== undefined) {
+        return cache.update[id];
+    }
+
+    const entry = await couch.get(dbname, id);
+    if(entry === null) {
+        cache.insert[id] = factory(id);
+        return cache.insert[id];
+    } else {
+        cache.update[id] = entry;
+        return entry;
+    }
+  
 };
